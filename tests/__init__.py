@@ -1,0 +1,1 @@
+"""Cat Chess test suite."""

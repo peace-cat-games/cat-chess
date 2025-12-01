@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cat Chess</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #fff;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        h1 span {
+            color: #ffd700;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .board-container {
+            background: #2a2a4a;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #444;
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .square.light {
+            background: #f0d9b5;
+        }
+
+        .square.dark {
+            background: #b58863;
+        }
+
+        .square.no-kill-zone {
+            box-shadow: inset 0 0 15px rgba(255, 215, 0, 0.6);
+        }
+
+        .square.no-kill-zone::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            right: 2px;
+            bottom: 2px;
+            border: 2px dashed rgba(255, 215, 0, 0.5);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .square.selected {
+            background: #7fc97f !important;
+        }
+
+        .square.legal-move::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(0, 128, 0, 0.5);
+            border-radius: 50%;
+        }
+
+        .square.legal-capture {
+            background: rgba(255, 0, 0, 0.3) !important;
+        }
+
+        .square:hover {
+            filter: brightness(1.1);
+        }
+
+        .piece {
+            user-select: none;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .piece.white {
+            color: #fff;
+            filter: drop-shadow(1px 1px 1px #000);
+        }
+
+        .piece.black {
+            color: #000;
+        }
+
+        .piece.cat {
+            color: #ffd700;
+            filter: drop-shadow(0 0 5px #ffd700);
+        }
+
+        .piece.disarmed {
+            opacity: 0.6;
+        }
+
+        .side-panel {
+            background: #2a2a4a;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            min-width: 250px;
+            max-width: 300px;
+        }
+
+        .turn-indicator {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .turn-indicator.white {
+            background: linear-gradient(135deg, #fff 0%, #ddd 100%);
+            color: #333;
+        }
+
+        .turn-indicator.black {
+            background: linear-gradient(135deg, #333 0%, #111 100%);
+            color: #fff;
+        }
+
+        .turn-indicator.cats {
+            background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+            color: #333;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .status.check {
+            background: #c0392b;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+            color: white;
+        }
+
+        .move-history {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .rules-summary {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(255,215,0,0.1);
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        .rules-summary h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .rules-summary ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .rules-summary li {
+            margin-bottom: 5px;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .rules-summary li::before {
+            content: '🐱';
+            position: absolute;
+            left: 0;
+            font-size: 10px;
+        }
+
+        .game-over-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .game-over-modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #2a2a4a;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .modal-content h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        .modal-content.cats h2 {
+            color: #ffd700;
+        }
+
+        .winner-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .rank-label, .file-label {
+            position: absolute;
+            font-size: 12px;
+            color: #666;
+            font-weight: bold;
+        }
+
+        .rank-labels {
+            position: absolute;
+            left: -20px;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            height: 480px;
+        }
+
+        .rank-labels span {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+        }
+
+        .file-labels {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 5px;
+        }
+
+        .file-labels span {
+            width: 60px;
+            text-align: center;
+            color: #888;
+        }
+
+        .board-wrapper {
+            position: relative;
+            padding-left: 25px;
+        }
+
+        .ai-settings {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+        }
+
+        .ai-settings label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+
+        .ai-settings input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1><span>Cat</span> Chess</h1>
+    <p class="subtitle">A three-faction chess variant where cats keep the peace</p>
+
+    <div class="game-container">
+        <div class="board-container">
+            <div class="board-wrapper">
+                <div class="rank-labels">
+                    <span>8</span>
+                    <span>7</span>
+                    <span>6</span>
+                    <span>5</span>
+                    <span>4</span>
+                    <span>3</span>
+                    <span>2</span>
+                    <span>1</span>
+                </div>
+                <div class="board" id="board"></div>
+                <div class="file-labels">
+                    <span>a</span>
+                    <span>b</span>
+                    <span>c</span>
+                    <span>d</span>
+                    <span>e</span>
+                    <span>f</span>
+                    <span>g</span>
+                    <span>h</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="turn-indicator" id="turnIndicator">White's Turn</div>
+            <div class="status" id="status"></div>
+
+            <div class="controls">
+                <button class="btn-primary" onclick="newGame()">New Game</button>
+                <button class="btn-secondary" onclick="undoMove()">Undo Move</button>
+            </div>
+
+            <div class="ai-settings">
+                <h4 style="margin-bottom: 10px;">AI Players</h4>
+                <label>
+                    <input type="checkbox" id="whiteAI" onchange="updateAI()">
+                    White AI
+                </label>
+                <label>
+                    <input type="checkbox" id="blackAI" onchange="updateAI()">
+                    Black AI
+                </label>
+                <label>
+                    <input type="checkbox" id="catAI" checked onchange="updateAI()">
+                    Cat AI
+                </label>
+            </div>
+
+            <div class="move-history" id="moveHistory"></div>
+
+            <div class="rules-summary">
+                <h3>Quick Rules</h3>
+                <ul>
+                    <li>Cats (gold) create no-kill zones</li>
+                    <li>Pieces near cats can't capture</li>
+                    <li>Turn order: White → Black → Cats</li>
+                    <li>Draw = Cats win!</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="modal-content" id="modalContent">
+            <div class="winner-icon" id="winnerIcon"></div>
+            <h2 id="winnerText"></h2>
+            <p id="winnerDesc"></p>
+            <button class="btn-primary" onclick="newGame()" style="margin-top: 20px;">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // CAT CHESS ENGINE - JavaScript Implementation
+        // ============================================
+
+        const Faction = {
+            WHITE: 'white',
+            BLACK: 'black',
+            CATS: 'cats'
+        };
+
+        const PieceType = {
+            KING: 'K',
+            QUEEN: 'Q',
+            ROOK: 'R',
+            BISHOP: 'B',
+            KNIGHT: 'N',
+            PAWN: 'P',
+            CAT: 'C'
+        };
+
+        const TURN_ORDER = [Faction.WHITE, Faction.BLACK, Faction.CATS];
+
+        const PIECE_SYMBOLS = {
+            'K': { white: '♔', black: '♚' },
+            'Q': { white: '♕', black: '♛' },
+            'R': { white: '♖', black: '♜' },
+            'B': { white: '♗', black: '♝' },
+            'N': { white: '♘', black: '♞' },
+            'P': { white: '♙', black: '♟' },
+            'C': { cats: '🐱' }
+        };
+
+        const PIECE_VALUES = {
+            'P': 100, 'N': 320, 'B': 330, 'R': 500, 'Q': 900, 'K': 20000, 'C': 0
+        };
+
+        class Square {
+            constructor(file, rank) {
+                this.file = file;
+                this.rank = rank;
+            }
+
+            isValid() {
+                return this.file >= 0 && this.file < 8 && this.rank >= 0 && this.rank < 8;
+            }
+
+            toAlgebraic() {
+                return String.fromCharCode(97 + this.file) + (this.rank + 1);
+            }
+
+            static fromAlgebraic(notation) {
+                const file = notation.charCodeAt(0) - 97;
+                const rank = parseInt(notation[1]) - 1;
+                return new Square(file, rank);
+            }
+
+            chebyshevDistance(other) {
+                return Math.max(Math.abs(this.file - other.file), Math.abs(this.rank - other.rank));
+            }
+
+            equals(other) {
+                return this.file === other.file && this.rank === other.rank;
+            }
+
+            key() {
+                return `${this.file},${this.rank}`;
+            }
+        }
+
+        class Piece {
+            constructor(type, faction, square) {
+                this.type = type;
+                this.faction = faction;
+                this.square = square;
+            }
+
+            symbol() {
+                if (this.type === PieceType.CAT) {
+                    return PIECE_SYMBOLS['C'].cats;
+                }
+                return PIECE_SYMBOLS[this.type][this.faction];
+            }
+
+            clone() {
+                return new Piece(this.type, this.faction, new Square(this.square.file, this.square.rank));
+            }
+        }
+
+        class Move {
+            constructor(piece, from, to, captured = null, promotion = null, isCastling = false, isEnPassant = false) {
+                this.piece = piece;
+                this.from = from;
+                this.to = to;
+                this.captured = captured;
+                this.promotion = promotion;
+                this.isCastling = isCastling;
+                this.isEnPassant = isEnPassant;
+            }
+
+            toAlgebraic() {
+                let result = this.from.toAlgebraic() + this.to.toAlgebraic();
+                if (this.promotion) result += this.promotion.toLowerCase();
+                return result;
+            }
+        }
+
+        class CatChessEngine {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.board = new Map();
+                this.turn = Faction.WHITE;
+                this.catPositions = [];
+                this.halfmoveClock = 0;
+                this.fullmoveNumber = 1;
+                this.castlingRights = {
+                    [Faction.WHITE]: { kingside: true, queenside: true },
+                    [Faction.BLACK]: { kingside: true, queenside: true }
+                };
+                this.enPassantTarget = null;
+                this.positionHistory = [];
+                this.moveHistory = [];
+                this._setupInitialPosition();
+            }
+
+            _setupInitialPosition() {
+                const backRank = [PieceType.ROOK, PieceType.KNIGHT, PieceType.BISHOP, PieceType.QUEEN,
+                                  PieceType.KING, PieceType.BISHOP, PieceType.KNIGHT, PieceType.ROOK];
+
+                // White pieces
+                for (let file = 0; file < 8; file++) {
+                    const sq1 = new Square(file, 0);
+                    this.board.set(sq1.key(), new Piece(backRank[file], Faction.WHITE, sq1));
+                    const sq2 = new Square(file, 1);
+                    this.board.set(sq2.key(), new Piece(PieceType.PAWN, Faction.WHITE, sq2));
+                }
+
+                // Black pieces
+                for (let file = 0; file < 8; file++) {
+                    const sq1 = new Square(file, 7);
+                    this.board.set(sq1.key(), new Piece(backRank[file], Faction.BLACK, sq1));
+                    const sq2 = new Square(file, 6);
+                    this.board.set(sq2.key(), new Piece(PieceType.PAWN, Faction.BLACK, sq2));
+                }
+
+                // Cats
+                const cat1Sq = Square.fromAlgebraic('a4');
+                const cat2Sq = Square.fromAlgebraic('h5');
+                this.board.set(cat1Sq.key(), new Piece(PieceType.CAT, Faction.CATS, cat1Sq));
+                this.board.set(cat2Sq.key(), new Piece(PieceType.CAT, Faction.CATS, cat2Sq));
+                this.catPositions = [cat1Sq, cat2Sq];
+            }
+
+            getPieceAt(square) {
+                return this.board.get(square.key()) || null;
+            }
+
+            getDisarmedSquares() {
+                const disarmed = new Set();
+                for (const catPos of this.catPositions) {
+                    for (let df = -1; df <= 1; df++) {
+                        for (let dr = -1; dr <= 1; dr++) {
+                            const sq = new Square(catPos.file + df, catPos.rank + dr);
+                            if (sq.isValid()) {
+                                disarmed.add(sq.key());
+                            }
+                        }
+                    }
+                }
+                return disarmed;
+            }
+
+            isDisarmed(square) {
+                for (const catPos of this.catPositions) {
+                    if (square.chebyshevDistance(catPos) <= 1) return true;
+                }
+                return false;
+            }
+
+            getPieces(faction) {
+                const pieces = [];
+                for (const piece of this.board.values()) {
+                    if (piece.faction === faction) pieces.push(piece);
+                }
+                return pieces;
+            }
+
+            getKing(faction) {
+                for (const piece of this.board.values()) {
+                    if (piece.type === PieceType.KING && piece.faction === faction) {
+                        return piece;
+                    }
+                }
+                return null;
+            }
+
+            getCats() {
+                return this.getPieces(Faction.CATS);
+            }
+
+            getAttackedSquares(faction, excludeKing = false) {
+                const attacked = new Set();
+                const disarmedSquares = this.getDisarmedSquares();
+
+                for (const piece of this.getPieces(faction)) {
+                    if (disarmedSquares.has(piece.square.key())) continue;
+                    if (excludeKing && piece.type === PieceType.KING) continue;
+
+                    const attacks = this._getPieceAttacks(piece);
+                    for (const sq of attacks) {
+                        attacked.add(sq.key());
+                    }
+                }
+                return attacked;
+            }
+
+            _getPieceAttacks(piece) {
+                const attacks = [];
+                const sq = piece.square;
+
+                switch (piece.type) {
+                    case PieceType.PAWN:
+                        const dir = piece.faction === Faction.WHITE ? 1 : -1;
+                        for (const df of [-1, 1]) {
+                            const target = new Square(sq.file + df, sq.rank + dir);
+                            if (target.isValid()) attacks.push(target);
+                        }
+                        break;
+
+                    case PieceType.KNIGHT:
+                        const knightMoves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                        for (const [df, dr] of knightMoves) {
+                            const target = new Square(sq.file + df, sq.rank + dr);
+                            if (target.isValid()) attacks.push(target);
+                        }
+                        break;
+
+                    case PieceType.BISHOP:
+                        attacks.push(...this._getSlidingAttacks(sq, [[-1,-1],[-1,1],[1,-1],[1,1]]));
+                        break;
+
+                    case PieceType.ROOK:
+                        attacks.push(...this._getSlidingAttacks(sq, [[-1,0],[1,0],[0,-1],[0,1]]));
+                        break;
+
+                    case PieceType.QUEEN:
+                        attacks.push(...this._getSlidingAttacks(sq, [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]));
+                        break;
+
+                    case PieceType.KING:
+                        for (let df = -1; df <= 1; df++) {
+                            for (let dr = -1; dr <= 1; dr++) {
+                                if (df === 0 && dr === 0) continue;
+                                const target = new Square(sq.file + df, sq.rank + dr);
+                                if (target.isValid()) attacks.push(target);
+                            }
+                        }
+                        break;
+                }
+
+                return attacks;
+            }
+
+            _getSlidingAttacks(sq, directions) {
+                const attacks = [];
+                for (const [df, dr] of directions) {
+                    for (let dist = 1; dist < 8; dist++) {
+                        const target = new Square(sq.file + df * dist, sq.rank + dr * dist);
+                        if (!target.isValid()) break;
+                        attacks.push(target);
+                        if (this.getPieceAt(target)) break;
+                    }
+                }
+                return attacks;
+            }
+
+            isInCheck(faction) {
+                if (faction === Faction.CATS) return false;
+                const king = this.getKing(faction);
+                if (!king) return false;
+                const enemy = faction === Faction.WHITE ? Faction.BLACK : Faction.WHITE;
+                return this.getAttackedSquares(enemy).has(king.square.key());
+            }
+
+            getLegalMoves(faction = null) {
+                faction = faction || this.turn;
+
+                if (faction === Faction.CATS) {
+                    return this._getCatMoves();
+                }
+
+                const moves = [];
+                const disarmedSquares = this.getDisarmedSquares();
+
+                for (const piece of this.getPieces(faction)) {
+                    moves.push(...this._getPieceMoves(piece, disarmedSquares));
+                }
+
+                // Filter moves that leave king in check
+                return moves.filter(move => this._isMoveLegl(move, faction));
+            }
+
+            _getCatMoves() {
+                const moves = [];
+                for (const cat of this.getCats()) {
+                    const sq = cat.square;
+                    for (let df = -1; df <= 1; df++) {
+                        for (let dr = -1; dr <= 1; dr++) {
+                            if (df === 0 && dr === 0) continue;
+                            const target = new Square(sq.file + df, sq.rank + dr);
+                            if (target.isValid() && !this.getPieceAt(target)) {
+                                moves.push(new Move(cat, sq, target));
+                            }
+                        }
+                    }
+                }
+                return moves;
+            }
+
+            _getPieceMoves(piece, disarmedSquares) {
+                const moves = [];
+                const sq = piece.square;
+                const isDisarmed = disarmedSquares.has(sq.key());
+
+                switch (piece.type) {
+                    case PieceType.PAWN:
+                        moves.push(...this._getPawnMoves(piece, isDisarmed, disarmedSquares));
+                        break;
+                    case PieceType.KNIGHT:
+                        const knightMoves = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                        for (const [df, dr] of knightMoves) {
+                            const target = new Square(sq.file + df, sq.rank + dr);
+                            if (target.isValid()) {
+                                const move = this._createMoveIfValid(piece, target, isDisarmed, disarmedSquares);
+                                if (move) moves.push(move);
+                            }
+                        }
+                        break;
+                    case PieceType.BISHOP:
+                        moves.push(...this._getSlidingMoves(piece, [[-1,-1],[-1,1],[1,-1],[1,1]], isDisarmed, disarmedSquares));
+                        break;
+                    case PieceType.ROOK:
+                        moves.push(...this._getSlidingMoves(piece, [[-1,0],[1,0],[0,-1],[0,1]], isDisarmed, disarmedSquares));
+                        break;
+                    case PieceType.QUEEN:
+                        moves.push(...this._getSlidingMoves(piece, [[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]], isDisarmed, disarmedSquares));
+                        break;
+                    case PieceType.KING:
+                        moves.push(...this._getKingMoves(piece, isDisarmed, disarmedSquares));
+                        break;
+                }
+
+                return moves;
+            }
+
+            _getPawnMoves(piece, isDisarmed, disarmedSquares) {
+                const moves = [];
+                const sq = piece.square;
+                const dir = piece.faction === Faction.WHITE ? 1 : -1;
+                const startRank = piece.faction === Faction.WHITE ? 1 : 6;
+                const promoRank = piece.faction === Faction.WHITE ? 7 : 0;
+
+                // Forward move
+                const forward = new Square(sq.file, sq.rank + dir);
+                if (forward.isValid() && !this.getPieceAt(forward)) {
+                    if (forward.rank === promoRank) {
+                        for (const promo of [PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT]) {
+                            moves.push(new Move(piece, sq, forward, null, promo));
+                        }
+                    } else {
+                        moves.push(new Move(piece, sq, forward));
+                    }
+
+                    // Double move
+                    if (sq.rank === startRank) {
+                        const double = new Square(sq.file, sq.rank + 2 * dir);
+                        if (!this.getPieceAt(double)) {
+                            moves.push(new Move(piece, sq, double));
+                        }
+                    }
+                }
+
+                // Captures
+                if (!isDisarmed) {
+                    for (const df of [-1, 1]) {
+                        const target = new Square(sq.file + df, sq.rank + dir);
+                        if (!target.isValid() || disarmedSquares.has(target.key())) continue;
+
+                        const targetPiece = this.getPieceAt(target);
+                        if (targetPiece && targetPiece.faction !== piece.faction && targetPiece.type !== PieceType.CAT) {
+                            if (target.rank === promoRank) {
+                                for (const promo of [PieceType.QUEEN, PieceType.ROOK, PieceType.BISHOP, PieceType.KNIGHT]) {
+                                    moves.push(new Move(piece, sq, target, targetPiece, promo));
+                                }
+                            } else {
+                                moves.push(new Move(piece, sq, target, targetPiece));
+                            }
+                        }
+
+                        // En passant
+                        if (this.enPassantTarget && target.equals(this.enPassantTarget)) {
+                            const capturedSq = new Square(target.file, sq.rank);
+                            const captured = this.getPieceAt(capturedSq);
+                            if (captured && !disarmedSquares.has(capturedSq.key())) {
+                                moves.push(new Move(piece, sq, target, captured, null, false, true));
+                            }
+                        }
+                    }
+                }
+
+                return moves;
+            }
+
+            _getSlidingMoves(piece, directions, isDisarmed, disarmedSquares) {
+                const moves = [];
+                const sq = piece.square;
+
+                for (const [df, dr] of directions) {
+                    for (let dist = 1; dist < 8; dist++) {
+                        const target = new Square(sq.file + df * dist, sq.rank + dr * dist);
+                        if (!target.isValid()) break;
+
+                        const targetPiece = this.getPieceAt(target);
+                        if (!targetPiece) {
+                            moves.push(new Move(piece, sq, target));
+                        } else {
+                            if (!isDisarmed && !disarmedSquares.has(target.key()) &&
+                                targetPiece.faction !== piece.faction && targetPiece.type !== PieceType.CAT) {
+                                moves.push(new Move(piece, sq, target, targetPiece));
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                return moves;
+            }
+
+            _getKingMoves(piece, isDisarmed, disarmedSquares) {
+                const moves = [];
+                const sq = piece.square;
+                const enemy = piece.faction === Faction.WHITE ? Faction.BLACK : Faction.WHITE;
+                const attacked = this.getAttackedSquares(enemy);
+
+                for (let df = -1; df <= 1; df++) {
+                    for (let dr = -1; dr <= 1; dr++) {
+                        if (df === 0 && dr === 0) continue;
+                        const target = new Square(sq.file + df, sq.rank + dr);
+                        if (!target.isValid() || attacked.has(target.key())) continue;
+
+                        const targetPiece = this.getPieceAt(target);
+                        if (!targetPiece) {
+                            moves.push(new Move(piece, sq, target));
+                        } else if (!isDisarmed && !disarmedSquares.has(target.key()) &&
+                                   targetPiece.faction !== piece.faction && targetPiece.type !== PieceType.CAT) {
+                            moves.push(new Move(piece, sq, target, targetPiece));
+                        }
+                    }
+                }
+
+                // Castling
+                if (!this.isInCheck(piece.faction)) {
+                    moves.push(...this._getCastlingMoves(piece, attacked));
+                }
+
+                return moves;
+            }
+
+            _getCastlingMoves(king, attacked) {
+                const moves = [];
+                const rights = this.castlingRights[king.faction];
+                const rank = king.faction === Faction.WHITE ? 0 : 7;
+
+                // Kingside
+                if (rights.kingside) {
+                    const f = new Square(5, rank);
+                    const g = new Square(6, rank);
+                    const rookSq = new Square(7, rank);
+                    const rook = this.getPieceAt(rookSq);
+
+                    if (!this.getPieceAt(f) && !this.getPieceAt(g) &&
+                        !attacked.has(f.key()) && !attacked.has(g.key()) &&
+                        rook && rook.type === PieceType.ROOK && rook.faction === king.faction) {
+                        moves.push(new Move(king, king.square, g, null, null, true));
+                    }
+                }
+
+                // Queenside
+                if (rights.queenside) {
+                    const b = new Square(1, rank);
+                    const c = new Square(2, rank);
+                    const d = new Square(3, rank);
+                    const rookSq = new Square(0, rank);
+                    const rook = this.getPieceAt(rookSq);
+
+                    if (!this.getPieceAt(b) && !this.getPieceAt(c) && !this.getPieceAt(d) &&
+                        !attacked.has(c.key()) && !attacked.has(d.key()) &&
+                        rook && rook.type === PieceType.ROOK && rook.faction === king.faction) {
+                        moves.push(new Move(king, king.square, c, null, null, true));
+                    }
+                }
+
+                return moves;
+            }
+
+            _createMoveIfValid(piece, target, isDisarmed, disarmedSquares) {
+                const targetPiece = this.getPieceAt(target);
+                if (!targetPiece) {
+                    return new Move(piece, piece.square, target);
+                } else if (!isDisarmed && !disarmedSquares.has(target.key()) &&
+                           targetPiece.faction !== piece.faction && targetPiece.type !== PieceType.CAT) {
+                    return new Move(piece, piece.square, target, targetPiece);
+                }
+                return null;
+            }
+
+            _isMoveLegl(move, faction) {
+                // Make move temporarily
+                const backup = this._backupState();
+                this._applyMove(move);
+                const inCheck = this.isInCheck(faction);
+                this._restoreState(backup);
+                return !inCheck;
+            }
+
+            _backupState() {
+                return {
+                    board: new Map(Array.from(this.board.entries()).map(([k, v]) => [k, v.clone()])),
+                    turn: this.turn,
+                    catPositions: this.catPositions.map(p => new Square(p.file, p.rank)),
+                    halfmoveClock: this.halfmoveClock,
+                    castlingRights: JSON.parse(JSON.stringify(this.castlingRights)),
+                    enPassantTarget: this.enPassantTarget ? new Square(this.enPassantTarget.file, this.enPassantTarget.rank) : null
+                };
+            }
+
+            _restoreState(backup) {
+                this.board = backup.board;
+                this.turn = backup.turn;
+                this.catPositions = backup.catPositions;
+                this.halfmoveClock = backup.halfmoveClock;
+                this.castlingRights = backup.castlingRights;
+                this.enPassantTarget = backup.enPassantTarget;
+            }
+
+            _applyMove(move) {
+                // Remove from origin
+                this.board.delete(move.from.key());
+
+                // Handle capture
+                if (move.captured) {
+                    if (move.isEnPassant) {
+                        const capturedSq = new Square(move.to.file, move.from.rank);
+                        this.board.delete(capturedSq.key());
+                    } else {
+                        this.board.delete(move.to.key());
+                    }
+                }
+
+                // Place at destination
+                const newPiece = new Piece(
+                    move.promotion || move.piece.type,
+                    move.piece.faction,
+                    move.to
+                );
+                this.board.set(move.to.key(), newPiece);
+
+                // Handle castling rook
+                if (move.isCastling) {
+                    const rank = move.from.rank;
+                    let rookFrom, rookTo;
+                    if (move.to.file === 6) { // Kingside
+                        rookFrom = new Square(7, rank);
+                        rookTo = new Square(5, rank);
+                    } else { // Queenside
+                        rookFrom = new Square(0, rank);
+                        rookTo = new Square(3, rank);
+                    }
+                    const rook = this.board.get(rookFrom.key());
+                    this.board.delete(rookFrom.key());
+                    this.board.set(rookTo.key(), new Piece(PieceType.ROOK, rook.faction, rookTo));
+                }
+
+                // Update cat positions
+                if (move.piece.type === PieceType.CAT) {
+                    this.catPositions = this.catPositions.map(cp =>
+                        cp.equals(move.from) ? move.to : cp
+                    );
+                }
+
+                // Update castling rights
+                if (move.piece.type === PieceType.KING) {
+                    this.castlingRights[move.piece.faction] = { kingside: false, queenside: false };
+                } else if (move.piece.type === PieceType.ROOK) {
+                    if (move.from.file === 0) {
+                        this.castlingRights[move.piece.faction].queenside = false;
+                    } else if (move.from.file === 7) {
+                        this.castlingRights[move.piece.faction].kingside = false;
+                    }
+                }
+
+                // Update en passant
+                if (move.piece.type === PieceType.PAWN && Math.abs(move.to.rank - move.from.rank) === 2) {
+                    const dir = move.piece.faction === Faction.WHITE ? 1 : -1;
+                    this.enPassantTarget = new Square(move.from.file, move.from.rank + dir);
+                } else {
+                    this.enPassantTarget = null;
+                }
+
+                // Update clocks
+                if (move.captured || move.piece.type === PieceType.PAWN) {
+                    this.halfmoveClock = 0;
+                } else {
+                    this.halfmoveClock++;
+                }
+            }
+
+            makeMove(move) {
+                const legalMoves = this.getLegalMoves();
+                const matchingMove = legalMoves.find(m =>
+                    m.from.equals(move.from) && m.to.equals(move.to) &&
+                    m.promotion === move.promotion
+                );
+
+                if (!matchingMove) return false;
+
+                // Store for undo
+                this.moveHistory.push({
+                    move: matchingMove,
+                    backup: this._backupState()
+                });
+
+                this._applyMove(matchingMove);
+
+                // Record position
+                this.positionHistory.push(this.positionKey());
+
+                // Advance turn
+                const currentIdx = TURN_ORDER.indexOf(this.turn);
+                this.turn = TURN_ORDER[(currentIdx + 1) % 3];
+
+                if (this.turn === Faction.WHITE) {
+                    this.fullmoveNumber++;
+                }
+
+                return true;
+            }
+
+            undoMove() {
+                if (this.moveHistory.length === 0) return false;
+                const { backup } = this.moveHistory.pop();
+                this._restoreState(backup);
+                this.positionHistory.pop();
+                return true;
+            }
+
+            positionKey() {
+                const pieces = [];
+                for (const [key, piece] of this.board.entries()) {
+                    pieces.push(`${key}:${piece.type}${piece.faction[0]}`);
+                }
+                pieces.sort();
+                return pieces.join(',') + '|' + this.turn;
+            }
+
+            getGameResult() {
+                const current = this.turn;
+
+                if (current !== Faction.CATS) {
+                    const legalMoves = this.getLegalMoves();
+                    if (legalMoves.length === 0) {
+                        if (this.isInCheck(current)) {
+                            return current === Faction.WHITE ? Faction.BLACK : Faction.WHITE;
+                        }
+                        return Faction.CATS; // Stalemate
+                    }
+                }
+
+                // Fifty-move rule
+                if (this.halfmoveClock >= 100) {
+                    return Faction.CATS;
+                }
+
+                // Threefold repetition
+                const posKey = this.positionKey();
+                const count = this.positionHistory.filter(p => p === posKey).length;
+                if (count >= 3) {
+                    return Faction.CATS;
+                }
+
+                // Insufficient material
+                if (this._isInsufficientMaterial()) {
+                    return Faction.CATS;
+                }
+
+                return null;
+            }
+
+            _isInsufficientMaterial() {
+                const whitePieces = this.getPieces(Faction.WHITE).filter(p => p.type !== PieceType.KING);
+                const blackPieces = this.getPieces(Faction.BLACK).filter(p => p.type !== PieceType.KING);
+
+                if (whitePieces.length === 0 && blackPieces.length === 0) return true;
+
+                if (blackPieces.length === 0 && whitePieces.length === 1) {
+                    if ([PieceType.BISHOP, PieceType.KNIGHT].includes(whitePieces[0].type)) return true;
+                }
+
+                if (whitePieces.length === 0 && blackPieces.length === 1) {
+                    if ([PieceType.BISHOP, PieceType.KNIGHT].includes(blackPieces[0].type)) return true;
+                }
+
+                return false;
+            }
+        }
+
+        // ============================================
+        // SIMPLE AI
+        // ============================================
+
+        class CatChessAI {
+            constructor(engine, faction, depth = 2) {
+                this.engine = engine;
+                this.faction = faction;
+                this.depth = depth;
+            }
+
+            getBestMove() {
+                if (this.faction === Faction.CATS) {
+                    return this._getCatMove();
+                }
+                return this._getWarringMove();
+            }
+
+            _getWarringMove() {
+                const moves = this.engine.getLegalMoves();
+                if (moves.length === 0) return null;
+
+                let bestMove = moves[0];
+                let bestScore = -Infinity;
+
+                for (const move of moves) {
+                    const backup = this.engine._backupState();
+                    this.engine._applyMove(move);
+                    this.engine.turn = TURN_ORDER[(TURN_ORDER.indexOf(this.engine.turn) + 1) % 3];
+
+                    const score = this._minimax(this.depth - 1, -Infinity, Infinity, false);
+
+                    this.engine._restoreState(backup);
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+
+                return bestMove;
+            }
+
+            _minimax(depth, alpha, beta, maximizing) {
+                const result = this.engine.getGameResult();
+                if (result) {
+                    if (result === this.faction) return 100000 + depth;
+                    if (result === Faction.CATS) return -50000;
+                    return -100000 - depth;
+                }
+
+                if (depth === 0) return this._evaluate();
+
+                const moves = this.engine.getLegalMoves();
+                if (moves.length === 0) return this._evaluate();
+
+                if (maximizing) {
+                    let maxEval = -Infinity;
+                    for (const move of moves) {
+                        const backup = this.engine._backupState();
+                        this.engine._applyMove(move);
+                        this.engine.turn = TURN_ORDER[(TURN_ORDER.indexOf(this.engine.turn) + 1) % 3];
+                        const eval_ = this._minimax(depth - 1, alpha, beta, false);
+                        this.engine._restoreState(backup);
+                        maxEval = Math.max(maxEval, eval_);
+                        alpha = Math.max(alpha, eval_);
+                        if (beta <= alpha) break;
+                    }
+                    return maxEval;
+                } else {
+                    let minEval = Infinity;
+                    for (const move of moves) {
+                        const backup = this.engine._backupState();
+                        this.engine._applyMove(move);
+                        this.engine.turn = TURN_ORDER[(TURN_ORDER.indexOf(this.engine.turn) + 1) % 3];
+                        const eval_ = this._minimax(depth - 1, alpha, beta, true);
+                        this.engine._restoreState(backup);
+                        minEval = Math.min(minEval, eval_);
+                        beta = Math.min(beta, eval_);
+                        if (beta <= alpha) break;
+                    }
+                    return minEval;
+                }
+            }
+
+            _evaluate() {
+                let score = 0;
+                const disarmed = this.engine.getDisarmedSquares();
+
+                for (const piece of this.engine.board.values()) {
+                    if (piece.type === PieceType.CAT) continue;
+                    let value = PIECE_VALUES[piece.type];
+                    if (disarmed.has(piece.square.key())) value *= 0.7;
+
+                    if (piece.faction === this.faction) {
+                        score += value;
+                    } else {
+                        score -= value;
+                    }
+                }
+
+                return score;
+            }
+
+            _getCatMove() {
+                const moves = this.engine.getLegalMoves();
+                if (moves.length === 0) return null;
+
+                let bestMove = moves[0];
+                let bestScore = -Infinity;
+
+                for (const move of moves) {
+                    const score = this._evaluateCatMove(move);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = move;
+                    }
+                }
+
+                return bestMove;
+            }
+
+            _evaluateCatMove(move) {
+                let score = 0;
+                const backup = this.engine._backupState();
+                this.engine._applyMove(move);
+
+                const disarmed = this.engine.getDisarmedSquares();
+
+                // Count disarmed pieces
+                for (const piece of this.engine.board.values()) {
+                    if (piece.type !== PieceType.CAT && disarmed.has(piece.square.key())) {
+                        score += 50 + PIECE_VALUES[piece.type] * 0.1;
+                    }
+                }
+
+                // Near kings
+                for (const faction of [Faction.WHITE, Faction.BLACK]) {
+                    const king = this.engine.getKing(faction);
+                    if (king) {
+                        const dist = move.to.chebyshevDistance(king.square);
+                        if (dist <= 2) score += (3 - dist) * 30;
+                    }
+                }
+
+                // Center preference
+                const centerDist = move.to.chebyshevDistance(new Square(3, 3));
+                score += (7 - centerDist) * 5;
+
+                this.engine._restoreState(backup);
+                return score;
+            }
+        }
+
+        // ============================================
+        // UI CODE
+        // ============================================
+
+        let engine = new CatChessEngine();
+        let selectedSquare = null;
+        let legalMoves = [];
+        let aiSettings = { white: false, black: false, cats: true };
+
+        function newGame() {
+            engine = new CatChessEngine();
+            selectedSquare = null;
+            legalMoves = [];
+            document.getElementById('gameOverModal').classList.remove('show');
+            document.getElementById('moveHistory').innerHTML = '';
+            renderBoard();
+            updateUI();
+            checkAITurn();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            const disarmed = engine.getDisarmedSquares();
+
+            for (let rank = 7; rank >= 0; rank--) {
+                for (let file = 0; file < 8; file++) {
+                    const sq = new Square(file, rank);
+                    const squareEl = document.createElement('div');
+                    const isLight = (file + rank) % 2 === 1;
+
+                    squareEl.className = `square ${isLight ? 'light' : 'dark'}`;
+                    squareEl.dataset.file = file;
+                    squareEl.dataset.rank = rank;
+
+                    if (disarmed.has(sq.key())) {
+                        squareEl.classList.add('no-kill-zone');
+                    }
+
+                    if (selectedSquare && selectedSquare.equals(sq)) {
+                        squareEl.classList.add('selected');
+                    }
+
+                    // Show legal move indicators
+                    const isLegalTarget = legalMoves.some(m => m.to.equals(sq));
+                    const isCapture = legalMoves.some(m => m.to.equals(sq) && m.captured);
+                    if (isLegalTarget) {
+                        squareEl.classList.add(isCapture ? 'legal-capture' : 'legal-move');
+                    }
+
+                    const piece = engine.getPieceAt(sq);
+                    if (piece) {
+                        const pieceEl = document.createElement('span');
+                        pieceEl.className = `piece ${piece.faction}`;
+                        if (disarmed.has(sq.key()) && piece.type !== PieceType.CAT) {
+                            pieceEl.classList.add('disarmed');
+                        }
+                        pieceEl.textContent = piece.symbol();
+                        squareEl.appendChild(pieceEl);
+                    }
+
+                    squareEl.addEventListener('click', () => handleSquareClick(sq));
+                    boardEl.appendChild(squareEl);
+                }
+            }
+        }
+
+        function handleSquareClick(sq) {
+            const result = engine.getGameResult();
+            if (result) return;
+
+            // If it's AI's turn, ignore clicks
+            if (aiSettings[engine.turn]) return;
+
+            const piece = engine.getPieceAt(sq);
+
+            // If clicking on a legal move destination
+            if (selectedSquare && legalMoves.some(m => m.to.equals(sq))) {
+                const move = legalMoves.find(m => m.to.equals(sq));
+
+                // Handle promotion
+                if (move.piece.type === PieceType.PAWN &&
+                    (sq.rank === 7 || sq.rank === 0) &&
+                    engine.turn !== Faction.CATS) {
+                    const promo = prompt('Promote to (Q/R/B/N):', 'Q');
+                    const promoType = { 'Q': PieceType.QUEEN, 'R': PieceType.ROOK, 'B': PieceType.BISHOP, 'N': PieceType.KNIGHT }[promo?.toUpperCase()] || PieceType.QUEEN;
+                    move.promotion = promoType;
+                }
+
+                if (engine.makeMove(move)) {
+                    addMoveToHistory(move);
+                    selectedSquare = null;
+                    legalMoves = [];
+                    renderBoard();
+                    updateUI();
+                    checkGameEnd();
+                    setTimeout(checkAITurn, 300);
+                }
+                return;
+            }
+
+            // Select a piece
+            if (piece && piece.faction === engine.turn) {
+                selectedSquare = sq;
+                legalMoves = engine.getLegalMoves().filter(m => m.from.equals(sq));
+                renderBoard();
+            } else {
+                selectedSquare = null;
+                legalMoves = [];
+                renderBoard();
+            }
+        }
+
+        function updateUI() {
+            const turnEl = document.getElementById('turnIndicator');
+            turnEl.className = `turn-indicator ${engine.turn}`;
+            const turnNames = { white: "White's Turn", black: "Black's Turn", cats: "Cats' Turn" };
+            turnEl.textContent = turnNames[engine.turn];
+
+            const statusEl = document.getElementById('status');
+            if (engine.turn !== Faction.CATS && engine.isInCheck(engine.turn)) {
+                statusEl.textContent = 'CHECK!';
+                statusEl.className = 'status check';
+            } else {
+                statusEl.textContent = '';
+                statusEl.className = 'status';
+            }
+        }
+
+        function addMoveToHistory(move) {
+            const historyEl = document.getElementById('moveHistory');
+            const moveText = `${move.piece.type}${move.toAlgebraic()}${move.captured ? 'x' : ''}`;
+            historyEl.innerHTML += `<div>${engine.fullmoveNumber}. ${engine.turn === Faction.WHITE ? '' : engine.turn === Faction.BLACK ? '...' : '....'} ${moveText}</div>`;
+            historyEl.scrollTop = historyEl.scrollHeight;
+        }
+
+        function checkGameEnd() {
+            const result = engine.getGameResult();
+            if (result) {
+                showGameOver(result);
+            }
+        }
+
+        function showGameOver(winner) {
+            const modal = document.getElementById('gameOverModal');
+            const content = document.getElementById('modalContent');
+            const icon = document.getElementById('winnerIcon');
+            const text = document.getElementById('winnerText');
+            const desc = document.getElementById('winnerDesc');
+
+            content.className = 'modal-content ' + winner;
+
+            if (winner === Faction.CATS) {
+                icon.textContent = '🐱';
+                text.textContent = 'THE CATS WIN!';
+                desc.textContent = 'Peace has prevailed. The war has ended in a draw!';
+            } else if (winner === Faction.WHITE) {
+                icon.textContent = '♔';
+                text.textContent = 'WHITE WINS!';
+                desc.textContent = 'Checkmate! White has won the battle.';
+            } else {
+                icon.textContent = '♚';
+                text.textContent = 'BLACK WINS!';
+                desc.textContent = 'Checkmate! Black has won the battle.';
+            }
+
+            modal.classList.add('show');
+        }
+
+        function undoMove() {
+            if (engine.undoMove()) {
+                selectedSquare = null;
+                legalMoves = [];
+                renderBoard();
+                updateUI();
+            }
+        }
+
+        function updateAI() {
+            aiSettings.white = document.getElementById('whiteAI').checked;
+            aiSettings.black = document.getElementById('blackAI').checked;
+            aiSettings.cats = document.getElementById('catAI').checked;
+            checkAITurn();
+        }
+
+        function checkAITurn() {
+            const result = engine.getGameResult();
+            if (result) return;
+
+            if (aiSettings[engine.turn]) {
+                setTimeout(makeAIMove, 500);
+            }
+        }
+
+        function makeAIMove() {
+            const ai = new CatChessAI(engine, engine.turn, 2);
+            const move = ai.getBestMove();
+
+            if (move && engine.makeMove(move)) {
+                addMoveToHistory(move);
+                renderBoard();
+                updateUI();
+                checkGameEnd();
+                setTimeout(checkAITurn, 300);
+            }
+        }
+
+        // Initialize
+        renderBoard();
+        updateUI();
+        checkAITurn();
+    </script>
+</body>
+</html>
