@@ -4,6 +4,12 @@ A three-faction chess variant where Cats act as peacekeepers.
 
 ## Quick Start
 
+### Web GUI (Recommended)
+
+Open `web/index.html` in your browser - no installation required!
+
+### Command Line
+
 ```bash
 # Install
 pip install -e .
@@ -17,6 +23,29 @@ cat-chess --ai-vs-ai
 # Play as White
 cat-chess --play-white
 ```
+
+## Playing in the Web GUI
+
+1. **Open the game**: Open `web/index.html` in any modern browser
+2. **Select a piece**: Click on a piece to select it (legal moves will be highlighted)
+3. **Make a move**: Click on a highlighted square to move there
+   - Green dots = valid moves
+   - Red highlight = captures
+4. **No-kill zones**: Squares with golden dashed borders are near a Cat - pieces there cannot capture
+
+### GUI Controls
+
+| Button | Action |
+|--------|--------|
+| New Game | Start a fresh game |
+| Undo Move | Take back the last move |
+
+### AI Settings
+
+Use the checkboxes in the side panel to toggle AI for each faction:
+- **White AI** - Let AI play White
+- **Black AI** - Let AI play Black
+- **Cat AI** - Let AI control the Cats (enabled by default)
 
 ## How to Play
 
