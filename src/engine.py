@@ -88,10 +88,17 @@ class Move:
     is_en_passant: bool = False
 
     def to_algebraic(self) -> str:
+        # Pass move (cat stays in place)
+        if self.from_square == self.to_square:
+            return f"{self.from_square.to_algebraic()}(pass)"
         base = f"{self.from_square.to_algebraic()}{self.to_square.to_algebraic()}"
         if self.promotion:
             base += self.promotion.value.lower()
         return base
+
+    def is_pass(self) -> bool:
+        """Check if this is a pass move (piece stays in place)."""
+        return self.from_square == self.to_square
 
 
 @dataclass
@@ -339,10 +346,17 @@ class CatChessEngine:
         return legal_moves
 
     def _get_cat_moves(self) -> List[Move]:
-        """Generate moves for cat pieces."""
+        """Generate moves for cat pieces.
+
+        Cats can move one square in any direction to an empty square,
+        or pass (stay in place) if their position is already optimal.
+        """
         moves = []
         for cat in self.state.get_cats():
             sq = cat.square
+            # Pass move - cat stays in place
+            moves.append(Move(cat, sq, sq))
+            # Regular moves - one square in any direction
             for df in range(-1, 2):
                 for dr in range(-1, 2):
                     if df == 0 and dr == 0:

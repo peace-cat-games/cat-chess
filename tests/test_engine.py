@@ -602,6 +602,100 @@ class TestMoveGeneration:
         assert engine.state.turn == Faction.CATS
 
 
+class TestCatPassMove:
+    """Test cat pass (stay in place) functionality."""
+
+    def test_cat_can_pass(self):
+        """Cat can choose to stay in place (pass move)."""
+        engine = CatChessEngine()
+
+        engine.state.board.clear()
+
+        # Cat on e4
+        cat_sq = Square.from_algebraic("e4")
+        engine.state.board[cat_sq] = Piece(PieceType.CAT, Faction.CATS, cat_sq)
+        engine.state.cat_positions = [cat_sq]
+
+        # Kings
+        wk_sq = Square.from_algebraic("h1")
+        engine.state.board[wk_sq] = Piece(PieceType.KING, Faction.WHITE, wk_sq)
+        bk_sq = Square.from_algebraic("h8")
+        engine.state.board[bk_sq] = Piece(PieceType.KING, Faction.BLACK, bk_sq)
+
+        engine.state.turn = Faction.CATS
+
+        moves = engine.get_legal_moves()
+        pass_moves = [m for m in moves if m.is_pass()]
+
+        # Should have exactly one pass move per cat
+        assert len(pass_moves) == 1
+        assert pass_moves[0].from_square == cat_sq
+        assert pass_moves[0].to_square == cat_sq
+
+    def test_pass_move_algebraic_notation(self):
+        """Pass move shows correct algebraic notation."""
+        cat_sq = Square.from_algebraic("a4")
+        cat = Piece(PieceType.CAT, Faction.CATS, cat_sq)
+        pass_move = Move(cat, cat_sq, cat_sq)
+
+        assert pass_move.to_algebraic() == "a4(pass)"
+        assert pass_move.is_pass()
+
+    def test_pass_move_preserves_position(self):
+        """Pass move keeps cat in same position."""
+        engine = CatChessEngine()
+
+        # Play white and black moves to get to cats turn
+        engine.make_move_algebraic("e2", "e4")
+        engine.make_move_algebraic("e7", "e5")
+
+        assert engine.state.turn == Faction.CATS
+
+        original_positions = list(engine.state.cat_positions)
+
+        # Make a pass move for the cat on a4
+        cat = engine.state.get_piece_at(Square.from_algebraic("a4"))
+        pass_move = Move(cat, cat.square, cat.square)
+        engine.make_move(pass_move)
+
+        # Cat position should be unchanged
+        assert Square.from_algebraic("a4") in engine.state.cat_positions
+
+        # Turn should have advanced
+        assert engine.state.turn == Faction.WHITE
+
+    def test_pass_move_advances_turn(self):
+        """Pass move advances the turn correctly."""
+        engine = CatChessEngine()
+
+        engine.make_move_algebraic("e2", "e4")
+        engine.make_move_algebraic("e7", "e5")
+
+        assert engine.state.turn == Faction.CATS
+
+        cat = engine.state.get_piece_at(Square.from_algebraic("a4"))
+        pass_move = Move(cat, cat.square, cat.square)
+        engine.make_move(pass_move)
+
+        assert engine.state.turn == Faction.WHITE
+
+    def test_two_cats_can_each_pass(self):
+        """Both cats have pass moves available."""
+        engine = CatChessEngine()
+
+        engine.make_move_algebraic("e2", "e4")
+        engine.make_move_algebraic("e7", "e5")
+
+        moves = engine.get_legal_moves()
+        pass_moves = [m for m in moves if m.is_pass()]
+
+        # Should have 2 pass moves (one per cat)
+        assert len(pass_moves) == 2
+
+        pass_squares = {m.from_square.to_algebraic() for m in pass_moves}
+        assert pass_squares == {"a4", "h5"}
+
+
 class TestSquareClass:
     """Test Square utility class."""
 
