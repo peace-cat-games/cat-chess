@@ -16,9 +16,9 @@ class CatChessCLI:
 
     def __init__(
         self,
-        white_ai: bool = False,
-        black_ai: bool = False,
-        cat_ai: bool = True,
+        white_ai: bool = True,
+        black_ai: bool = True,
+        cat_ai: bool = False,
         ai_depth: int = 3,
     ):
         self.engine = CatChessEngine()
@@ -214,11 +214,9 @@ def main():
     parser = argparse.ArgumentParser(
         description="Cat Chess - A three-faction chess variant"
     )
-    parser.add_argument("--white-ai", action="store_true", help="Let AI play white")
-    parser.add_argument("--black-ai", action="store_true", help="Let AI play black")
-    parser.add_argument(
-        "--no-cat-ai", action="store_true", help="Disable cat AI (player controls cats)"
-    )
+    parser.add_argument("--play-white", action="store_true", help="Play as white")
+    parser.add_argument("--play-black", action="store_true", help="Play as black")
+    parser.add_argument("--cat-ai", action="store_true", help="Let AI control cats")
     parser.add_argument("--ai-vs-ai", action="store_true", help="Watch AI vs AI game")
     parser.add_argument(
         "--depth", type=int, default=3, help="AI search depth (default: 3)"
@@ -226,9 +224,9 @@ def main():
 
     args = parser.parse_args()
 
-    white_ai = args.white_ai or args.ai_vs_ai
-    black_ai = args.black_ai or args.ai_vs_ai
-    cat_ai = not args.no_cat_ai
+    white_ai = not args.play_white or args.ai_vs_ai
+    black_ai = not args.play_black or args.ai_vs_ai
+    cat_ai = args.cat_ai or args.ai_vs_ai
 
     cli = CatChessCLI(
         white_ai=white_ai, black_ai=black_ai, cat_ai=cat_ai, ai_depth=args.depth

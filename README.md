@@ -8,14 +8,14 @@ A three-faction chess variant where Cats act as peacekeepers.
 # Install
 pip install -e .
 
-# Play (you control White, AI controls Black and Cats)
+# Play (you control Cats, AI controls White and Black)
 cat-chess
 
 # Watch AI vs AI
 cat-chess --ai-vs-ai
 
-# Control the Cats yourself
-cat-chess --no-cat-ai
+# Play as White
+cat-chess --play-white
 ```
 
 ## How to Play
@@ -76,9 +76,9 @@ The Cats win if the war stalls!
 ## Command Line Options
 
 ```
---white-ai     Let AI play White
---black-ai     Let AI play Black
---no-cat-ai    Control Cats yourself (AI controls them by default)
+--play-white   Play as White (instead of Cats)
+--play-black   Play as Black (instead of Cats)
+--cat-ai       Let AI control Cats
 --ai-vs-ai     Watch AI play against itself
 --depth N      Set AI difficulty (default: 3)
 ```
