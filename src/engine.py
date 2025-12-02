@@ -320,6 +320,9 @@ class CatChessEngine:
         king = self.state.get_king(faction)
         if not king:
             return False
+        # A king in the disarmament zone cannot be checked (cannot be captured)
+        if self.state.is_disarmed(king.square):
+            return False
         enemy = Faction.BLACK if faction == Faction.WHITE else Faction.WHITE
         return king.square in self.get_attacked_squares(enemy)
 

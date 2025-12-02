@@ -291,6 +291,12 @@
             border-radius: 16px;
             text-align: center;
             max-width: 400px;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .modal-content.dragging {
+            cursor: grabbing;
         }
 
         .modal-content h2 {
@@ -1336,6 +1342,12 @@
             selectedSquare = null;
             legalMoves = [];
             document.getElementById('gameOverModal').classList.remove('show');
+            // Reset modal position to center
+            const modal = document.getElementById('modalContent');
+            modal.style.position = '';
+            modal.style.left = '';
+            modal.style.top = '';
+            modal.style.margin = '';
             document.getElementById('moveHistory').innerHTML = '';
             renderBoard();
             updateUI();
@@ -1528,6 +1540,35 @@
                 setTimeout(checkAITurn, 300);
             }
         }
+
+        // Make modal draggable
+        (function() {
+            const modal = document.getElementById('modalContent');
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            modal.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON') return;
+                isDragging = true;
+                modal.classList.add('dragging');
+                const rect = modal.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                modal.style.position = 'fixed';
+                modal.style.margin = '0';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                modal.style.left = (e.clientX - offsetX) + 'px';
+                modal.style.top = (e.clientY - offsetY) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                modal.classList.remove('dragging');
+            });
+        })();
 
         // Initialize
         renderBoard();
